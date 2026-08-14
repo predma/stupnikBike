@@ -1,0 +1,75 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: stupnikbike-admin-app
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-StupnikBikeAdmin}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY:?Set APP_KEY in .env.production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-https://admin.stupnik.bike}
+      APP_DOMAIN: ${APP_DOMAIN:-admin.stupnik.bike}
+      ACME_EMAIL: ${ACME_EMAIL:-bike@inmediusapp.eu}
+      APP_LOCALE: ${APP_LOCALE:-hr}
+      APP_FALLBACK_LOCALE: ${APP_FALLBACK_LOCALE:-hr}
+      APP_FAKER_LOCALE: ${APP_FAKER_LOCALE:-hr_HR}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stack}
+      LOG_STACK: ${LOG_STACK:-single}
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-sibinjbike}
+      DB_USERNAME: ${DB_USERNAME:-sibinjbike}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.production}
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      SESSION_ENCRYPT: ${SESSION_ENCRYPT:-false}
+      SESSION_PATH: ${SESSION_PATH:-/}
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-.stupnik.bike}
+      SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-true}
+      BROADCAST_CONNECTION: ${BROADCAST_CONNECTION:-log}
+      FILESYSTEM_DISK: ${FILESYSTEM_DISK:-local}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+      CACHE_STORE: ${CACHE_STORE:-database}
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_SCHEME: ${MAIL_SCHEME:-smtps}
+      MAIL_HOST: ${MAIL_HOST:-mail.inmediusapp.eu}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-bike@inmediusapp.eu}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?Set MAIL_PASSWORD in .env.production}
+      MAIL_EHLO_DOMAIN: ${MAIL_EHLO_DOMAIN:-inmediusapp.eu}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-bike@inmediusapp.eu}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-StupnikBike}
+      VITE_APP_NAME: ${VITE_APP_NAME:-StupnikBikeAdmin}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - stupnikbike-admin-storage:/app/storage
+      - stupnikbike-admin-caddy-data:/data
+      - stupnikbike-admin-caddy-config:/config
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.4
+    container_name: stupnikbike-admin-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-sibinjbike}
+      MYSQL_USER: ${DB_USERNAME:-sibinjbike}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.production}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env.production}
+    volumes:
+      - stupnikbike-admin-db-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  stupnikbike-admin-storage:
+  stupnikbike-admin-caddy-data:
+  stupnikbike-admin-caddy-config:
+  stupnikbike-admin-db-data:

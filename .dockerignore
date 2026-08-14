@@ -1,0 +1,13 @@
+node_modules
+vendor
+storage/logs
+.env
+.env.*
+!.env.example
+!.env.production.example
+public/hot
+public/fonts-manifest.dev.json
+.git
+.idea
+.DS_Store
+npm-debug.log

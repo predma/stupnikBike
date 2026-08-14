@@ -1,0 +1,58 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sibinjbike-admin-app
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: sibinjbike
+      DB_USERNAME: sibinj
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+    command: >
+      sh -lc "composer install --no-interaction --prefer-dist &&
+      php artisan optimize:clear &&
+      until mysqladmin ping -h db -u\"$$DB_USERNAME\" -p\"$$DB_PASSWORD\" --silent; do
+      echo 'Waiting for MySQL...';
+      sleep 2;
+      done &&
+      php artisan migrate --force --no-interaction &&
+      php artisan storage:link --force &&
+      php artisan serve --host=0.0.0.0 --port=8000"
+
+  vite:
+    image: node:22-alpine
+    container_name: sibinjbike-admin-vite
+    working_dir: /var/www/html
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/var/www/html
+    command: sh -lc "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+
+  db:
+    image: mysql:8.4
+    container_name: sibinjbike-admin-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: sibinjbike
+      MYSQL_USER: sibinj
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local_root_password}
+    volumes:
+      - sibinjbike-admin-db-data:/var/lib/mysql
+
+volumes:
+  sibinjbike-admin-db-data:
