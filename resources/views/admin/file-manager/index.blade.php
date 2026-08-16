@@ -1,81 +1,39 @@
 @extends('admin.layout')
 
 @section('content')
-    <div class="grid file-manager-grid">
-        <div class="card">
-            <div class="table-head" style="padding: 0 0 18px 0;">
+    <section class="fm-shell">
+        <aside class="fm-sidebar">
+            <div class="fm-sidebar-head">
                 <div>
-                    <h2>File Manager</h2>
-                    <div class="muted">Slike se spremaju u <strong>/storage/media</strong> i mogu se koristiti u biciklima, kvarovima i budućim modulima.</div>
+                    <div class="fm-kicker">Storage</div>
+                    <h2>Media Library</h2>
                 </div>
 
                 @if ($isPicker)
-                    <button class="btn secondary" type="button" onclick="window.close()">Zatvori picker</button>
+                    <button class="btn secondary compact" type="button" onclick="window.close()">Zatvori</button>
                 @endif
             </div>
 
-            <div class="breadcrumbs">
-                @foreach ($breadcrumbs as $breadcrumb)
-                    <a href="{{ route('admin.file-manager.index', ['directory' => $breadcrumb['directory'], 'picker' => $isPicker ? 1 : null, 'target' => $target]) }}">
-                        {{ $breadcrumb['label'] }}
-                    </a>
-                    @if (! $loop->last)
-                        <span>/</span>
-                    @endif
-                @endforeach
-            </div>
+            <a class="fm-root-link {{ $directory === '' ? 'active' : '' }}" href="{{ route('admin.file-manager.index', ['picker' => $isPicker ? 1 : null, 'target' => $target]) }}">
+                <span class="fm-folder-mark">ROOT</span>
+                <span>
+                    <strong>Media</strong>
+                    <small>/storage/media</small>
+                </span>
+            </a>
 
-            @error('file_manager')
-                <div class="error" style="margin-bottom: 16px;">{{ $message }}</div>
-            @enderror
-
-            <div class="file-toolbar">
-                <form method="POST" action="{{ route('admin.file-manager.directories.store') }}">
-                    @csrf
-                    <input type="hidden" name="directory" value="{{ $directory }}">
-                    <div class="inline-form">
-                        <input name="name" type="text" placeholder="Novi folder, npr. bicikli" required>
-                        <button class="btn secondary" type="submit">Kreiraj folder</button>
-                    </div>
-                    @error('name')
-                        <div class="error">{{ $message }}</div>
-                    @enderror
-                </form>
-
-                <form method="POST" action="{{ route('admin.file-manager.upload') }}" enctype="multipart/form-data">
-                    @csrf
-                    <input type="hidden" name="directory" value="{{ $directory }}">
-                    <div class="inline-form">
-                        <input name="images[]" type="file" accept="image/*" multiple required>
-                        <button class="btn" type="submit">Upload slika</button>
-                    </div>
-                    @error('images')
-                        <div class="error">{{ $message }}</div>
-                    @enderror
-                    @error('images.*')
-                        <div class="error">{{ $message }}</div>
-                    @enderror
-                </form>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="file-section-head">
-                <div>
-                    <h3>Direktoriji</h3>
-                    <div class="muted">{{ $directory === '' ? 'Root folder' : '/'.$directory }}</div>
-                </div>
-
+            <div class="fm-folder-list">
                 @if ($parentDirectory !== null)
-                    <a class="btn secondary" href="{{ route('admin.file-manager.index', ['directory' => $parentDirectory, 'picker' => $isPicker ? 1 : null, 'target' => $target]) }}">Natrag gore</a>
+                    <a class="fm-folder-row" href="{{ route('admin.file-manager.index', ['directory' => $parentDirectory, 'picker' => $isPicker ? 1 : null, 'target' => $target]) }}">
+                        <span class="fm-folder-mark">UP</span>
+                        <strong>Folder iznad</strong>
+                    </a>
                 @endif
-            </div>
 
-            <div class="folder-grid">
                 @forelse ($directories as $folder)
-                    <div class="folder-card">
-                        <a class="folder-open" href="{{ route('admin.file-manager.index', ['directory' => $folder['directory'], 'picker' => $isPicker ? 1 : null, 'target' => $target]) }}">
-                            <span class="folder-icon">DIR</span>
+                    <div class="fm-folder-row-wrap">
+                        <a class="fm-folder-row" href="{{ route('admin.file-manager.index', ['directory' => $folder['directory'], 'picker' => $isPicker ? 1 : null, 'target' => $target]) }}">
+                            <span class="fm-folder-mark">DIR</span>
                             <strong>{{ $folder['name'] }}</strong>
                         </a>
 
@@ -84,28 +42,88 @@
                             @method('DELETE')
                             <input type="hidden" name="path" value="{{ $folder['path'] }}">
                             <input type="hidden" name="type" value="directory">
-                            <button class="link-danger" type="submit">Obriši</button>
+                            <button class="fm-icon-danger" type="submit" title="Obriši prazan folder">×</button>
                         </form>
                     </div>
                 @empty
-                    <div class="muted">Nema foldera u ovom direktoriju.</div>
+                    <div class="fm-empty-mini">Nema podfoldera.</div>
                 @endforelse
             </div>
-        </div>
 
-        <div class="card">
-            <div class="file-section-head">
+            <form class="fm-create-folder" method="POST" action="{{ route('admin.file-manager.directories.store') }}">
+                @csrf
+                <input type="hidden" name="directory" value="{{ $directory }}">
+                <label>Novi folder</label>
                 <div>
-                    <h3>Slike</h3>
-                    <div class="muted">{{ $files->count() }} datoteka</div>
+                    <input name="name" type="text" placeholder="npr. bicikli" required>
+                    <button class="btn secondary compact" type="submit">Dodaj</button>
+                </div>
+                @error('name')
+                    <span class="error">{{ $message }}</span>
+                @enderror
+            </form>
+        </aside>
+
+        <div class="fm-main">
+            <div class="fm-top">
+                <div>
+                    <div class="fm-kicker">File Manager</div>
+                    <h2>{{ $directory === '' ? 'Media' : basename($directory) }}</h2>
+                    <div class="fm-path">
+                        @foreach ($breadcrumbs as $breadcrumb)
+                            <a href="{{ route('admin.file-manager.index', ['directory' => $breadcrumb['directory'], 'picker' => $isPicker ? 1 : null, 'target' => $target]) }}">
+                                {{ $breadcrumb['label'] }}
+                            </a>
+                            @if (! $loop->last)
+                                <span>/</span>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="fm-stats">
+                    <span>{{ $directories->count() }} foldera</span>
+                    <span>{{ $files->count() }} slika</span>
                 </div>
             </div>
 
-            <div class="media-grid">
+            @error('file_manager')
+                <div class="error" style="margin-bottom: 16px;">{{ $message }}</div>
+            @enderror
+
+            <form class="fm-upload" method="POST" action="{{ route('admin.file-manager.upload') }}" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="directory" value="{{ $directory }}">
+                <label class="fm-dropzone">
+                    <span class="fm-upload-icon">UPLOAD</span>
+                    <span>
+                        <strong>Upload slika u ovaj folder</strong>
+                        <small>JPG, PNG, WEBP, GIF ili SVG, više slika odjednom.</small>
+                    </span>
+                    <input name="images[]" type="file" accept="image/*" multiple required>
+                </label>
+                <button class="btn" type="submit">Upload</button>
+            </form>
+
+            @error('images')
+                <div class="error">{{ $message }}</div>
+            @enderror
+            @error('images.*')
+                <div class="error">{{ $message }}</div>
+            @enderror
+
+            <div class="fm-browser-head">
+                <div>
+                    <h3>Datoteke</h3>
+                    <p class="muted">Klik na sliku u picker modu odmah odabire URL.</p>
+                </div>
+            </div>
+
+            <div class="fm-media-grid">
                 @forelse ($files as $file)
-                    <article class="media-card">
+                    <article class="fm-file">
                         <button
-                            class="media-preview"
+                            class="fm-thumb"
                             type="button"
                             @if ($isPicker)
                                 data-picker-url="{{ $file['url'] }}"
@@ -115,35 +133,40 @@
                             <img src="{{ $file['url'] }}" alt="{{ $file['name'] }}">
                         </button>
 
-                        <div class="media-meta">
-                            <strong title="{{ $file['name'] }}">{{ $file['name'] }}</strong>
-                            <span>{{ $file['size'] }}</span>
-                        </div>
+                        <div class="fm-file-body">
+                            <div>
+                                <strong title="{{ $file['name'] }}">{{ $file['name'] }}</strong>
+                                <span>{{ $file['size'] }}</span>
+                            </div>
 
-                        <div class="media-actions">
-                            <button class="btn secondary copy-url" type="button" data-copy-url="{{ $file['url'] }}">Kopiraj URL</button>
+                            <div class="fm-file-actions">
+                                @if ($isPicker)
+                                    <button class="btn compact pick-file" type="button" data-picker-url="{{ $file['url'] }}" data-picker-target="{{ $target }}">Odaberi</button>
+                                @else
+                                    <a class="btn secondary compact" href="{{ $file['url'] }}" target="_blank" rel="noopener">Otvori</a>
+                                @endif
 
-                            @if ($isPicker)
-                                <button class="btn pick-file" type="button" data-picker-url="{{ $file['url'] }}" data-picker-target="{{ $target }}">Odaberi</button>
-                            @else
-                                <a class="btn secondary" href="{{ $file['url'] }}" target="_blank" rel="noopener">Otvori</a>
-                            @endif
+                                <button class="btn secondary compact copy-url" type="button" data-copy-url="{{ $file['url'] }}">URL</button>
 
-                            <form method="POST" action="{{ route('admin.file-manager.destroy') }}" onsubmit="return confirm('Obrisati sliku?');">
-                                @csrf
-                                @method('DELETE')
-                                <input type="hidden" name="path" value="{{ $file['path'] }}">
-                                <input type="hidden" name="type" value="file">
-                                <button class="link-danger" type="submit">Obriši</button>
-                            </form>
+                                <form method="POST" action="{{ route('admin.file-manager.destroy') }}" onsubmit="return confirm('Obrisati sliku?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <input type="hidden" name="path" value="{{ $file['path'] }}">
+                                    <input type="hidden" name="type" value="file">
+                                    <button class="btn danger compact" type="submit">Obriši</button>
+                                </form>
+                            </div>
                         </div>
                     </article>
                 @empty
-                    <div class="muted">Nema uploadanih slika u ovom direktoriju.</div>
+                    <div class="fm-empty">
+                        <strong>Ovaj folder je prazan.</strong>
+                        <span>Uploadaj slike gore ili napravi folder lijevo.</span>
+                    </div>
                 @endforelse
             </div>
         </div>
-    </div>
+    </section>
 @endsection
 
 @section('scripts')
@@ -170,7 +193,7 @@
             button.addEventListener('click', async () => {
                 await navigator.clipboard.writeText(button.dataset.copyUrl);
                 button.textContent = 'Kopirano';
-                setTimeout(() => button.textContent = 'Kopiraj URL', 1200);
+                setTimeout(() => button.textContent = 'URL', 1200);
             });
         });
     </script>
