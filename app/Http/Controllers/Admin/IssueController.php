@@ -120,7 +120,7 @@ class IssueController extends Controller
             ['name' => 'description', 'label' => 'Opis', 'type' => 'textarea', 'required' => true],
             ['name' => 'status', 'label' => 'Status', 'type' => 'text', 'required' => true],
             ['name' => 'priority', 'label' => 'Prioritet', 'type' => 'text', 'required' => true],
-            ['name' => 'image_url', 'label' => 'URL slike', 'type' => 'text'],
+            ['name' => 'image_url', 'label' => 'Slika', 'type' => 'image', 'hint' => 'Odaberi uploadanu sliku ili ručno unesi URL.'],
             ['name' => 'resolved_at', 'label' => 'Riješeno', 'type' => 'datetime-local'],
         ];
     }

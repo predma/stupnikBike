@@ -56,6 +56,32 @@
                                 <input type="checkbox" name="{{ $field['name'] }}" value="1" @checked((bool) $value)>
                                 <span>{{ $field['label'] }}</span>
                             </label>
+                        @elseif ($fieldType === 'image')
+                            <div class="image-picker">
+                                <input
+                                    id="{{ $field['name'] }}"
+                                    name="{{ $field['name'] }}"
+                                    type="text"
+                                    value="{{ $value }}"
+                                    placeholder="/storage/media/bicikli/slika.jpg"
+                                    data-image-input="{{ $field['name'] }}"
+                                >
+                                <button
+                                    class="btn secondary"
+                                    type="button"
+                                    data-open-file-manager
+                                    data-target="{{ $field['name'] }}"
+                                >
+                                    Odaberi iz File Managera
+                                </button>
+                            </div>
+                            <img
+                                class="image-preview"
+                                data-image-preview="{{ $field['name'] }}"
+                                src="{{ $value }}"
+                                alt="Pregled slike"
+                                onerror="this.removeAttribute('src')"
+                            >
                         @else
                             <input
                                 id="{{ $field['name'] }}"
@@ -84,4 +110,53 @@
             </div>
         </form>
     </div>
+@endsection
+
+@section('scripts')
+    <script>
+        function refreshImagePreview(target, url) {
+            const preview = document.querySelector(`[data-image-preview="${target}"]`);
+
+            if (!preview) {
+                return;
+            }
+
+            if (url) {
+                preview.src = url;
+                return;
+            }
+
+            preview.removeAttribute('src');
+        }
+
+        document.querySelectorAll('[data-open-file-manager]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.target;
+                const url = new URL(@json(route('admin.file-manager.index')), window.location.origin);
+                url.searchParams.set('picker', '1');
+                url.searchParams.set('target', target);
+
+                window.open(url.toString(), 'stupnikBikeFileManager', 'width=1180,height=820,resizable=yes,scrollbars=yes');
+            });
+        });
+
+        document.querySelectorAll('[data-image-input]').forEach((input) => {
+            input.addEventListener('input', () => refreshImagePreview(input.dataset.imageInput, input.value));
+        });
+
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin || event.data?.type !== 'stupnik-bike:file-selected') {
+                return;
+            }
+
+            const input = document.querySelector(`[data-image-input="${event.data.target}"]`);
+
+            if (!input) {
+                return;
+            }
+
+            input.value = event.data.url;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    </script>
 @endsection

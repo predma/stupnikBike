@@ -128,7 +128,7 @@ class BikeController extends Controller
             ['name' => 'type', 'label' => 'Tip', 'type' => 'text', 'required' => true],
             ['name' => 'status', 'label' => 'Status', 'type' => 'text', 'required' => true],
             ['name' => 'description', 'label' => 'Opis', 'type' => 'textarea'],
-            ['name' => 'image_url', 'label' => 'URL slike', 'type' => 'text'],
+            ['name' => 'image_url', 'label' => 'Slika', 'type' => 'image', 'hint' => 'Odaberi uploadanu sliku ili ručno unesi URL.'],
             ['name' => 'last_service_at', 'label' => 'Zadnji servis', 'type' => 'date'],
         ];
     }

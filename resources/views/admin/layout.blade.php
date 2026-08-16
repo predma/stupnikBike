@@ -112,6 +112,12 @@
             box-shadow: none;
             border: 1px solid var(--line);
         }
+        .btn.danger {
+            background: rgba(251, 113, 133, 0.14);
+            color: #fecdd3;
+            box-shadow: none;
+            border: 1px solid rgba(251, 113, 133, 0.28);
+        }
         .grid {
             display: grid;
             gap: 20px;
@@ -234,6 +240,145 @@
             font-size: 13px;
             margin-top: 8px;
         }
+        .image-picker {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+        }
+        .image-preview {
+            width: 140px;
+            height: 92px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            object-fit: cover;
+            background: rgba(15, 23, 42, 0.9);
+            display: none;
+        }
+        .image-preview[src]:not([src=""]) {
+            display: block;
+        }
+        .file-manager-grid {
+            gap: 18px;
+        }
+        .breadcrumbs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 18px;
+            color: var(--muted);
+        }
+        .breadcrumbs a {
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: rgba(148, 163, 184, 0.08);
+        }
+        .file-toolbar {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 16px;
+        }
+        .inline-form {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+        }
+        .inline-form input {
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            border-radius: 14px;
+            padding: 13px 14px;
+            outline: none;
+            width: 100%;
+        }
+        .file-section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .folder-grid,
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 14px;
+        }
+        .folder-card,
+        .media-card {
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(255, 255, 255, 0.035);
+            border-radius: 18px;
+            padding: 12px;
+        }
+        .folder-open {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .folder-icon {
+            display: inline-flex;
+            width: 42px;
+            height: 42px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(74, 222, 128, 0.18));
+            color: #bae6fd;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .08em;
+        }
+        .media-preview {
+            width: 100%;
+            height: 150px;
+            padding: 0;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.9);
+            cursor: pointer;
+        }
+        .media-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .media-meta {
+            display: grid;
+            gap: 3px;
+            margin: 10px 0;
+            min-height: 42px;
+        }
+        .media-meta strong {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .media-meta span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .media-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .link-danger {
+            border: 0;
+            background: transparent;
+            color: #fda4af;
+            cursor: pointer;
+            padding: 6px 0;
+        }
         @media (max-width: 1200px) {
             .stats, .dashboard-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .shell { grid-template-columns: 1fr; }
@@ -244,6 +389,7 @@
             .topbar, .table-head { flex-direction: column; align-items: stretch; }
             .stats, .dashboard-panels { grid-template-columns: 1fr; }
             th, td { padding: 12px 14px; }
+            .file-toolbar, .inline-form, .image-picker { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -265,6 +411,7 @@
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.stations') ? 'active' : '' }}" href="{{ route('admin.stations.index') }}">Stanice</a>
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.bikes') ? 'active' : '' }}" href="{{ route('admin.bikes.index') }}">Bicikli</a>
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.bike-prices') ? 'active' : '' }}" href="{{ route('admin.bike-prices.index') }}">Cjenik</a>
+                    <a class="{{ str_contains($currentRoute ?? '', 'admin.file-manager') ? 'active' : '' }}" href="{{ route('admin.file-manager.index') }}">File Manager</a>
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.reservations') ? 'active' : '' }}" href="{{ route('admin.reservations.index') }}">Rezervacije</a>
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.reservation-settings') ? 'active' : '' }}" href="{{ route('admin.reservation-settings.index') }}">Rezervacijske postavke</a>
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.issues') ? 'active' : '' }}" href="{{ route('admin.issues.index') }}">Kvarovi</a>

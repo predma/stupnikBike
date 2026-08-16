@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FileManagerController;
 use App\Http\Controllers\Admin\IssueController;
 use App\Http\Controllers\Admin\BikeController;
 use App\Http\Controllers\Admin\BikePriceController;
@@ -32,6 +33,10 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::resource('stations', StationController::class)->except(['show']);
         Route::resource('bikes', BikeController::class)->except(['show']);
         Route::resource('bike-prices', BikePriceController::class)->except(['show']);
+        Route::get('file-manager', [FileManagerController::class, 'index'])->name('file-manager.index');
+        Route::post('file-manager/directories', [FileManagerController::class, 'storeDirectory'])->name('file-manager.directories.store');
+        Route::post('file-manager/upload', [FileManagerController::class, 'upload'])->name('file-manager.upload');
+        Route::delete('file-manager', [FileManagerController::class, 'destroy'])->name('file-manager.destroy');
         Route::get('reservations/availability', [ReservationController::class, 'availability'])->name('reservations.availability');
         Route::resource('reservations', ReservationController::class)->except(['show']);
         Route::resource('reservation-settings', ReservationSettingController::class)->except(['show']);
