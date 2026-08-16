@@ -3,7 +3,7 @@
 @section('content')
     <div class="login-wrap">
         <div class="login-card">
-            <div class="pill">Sibinj Bike Admin</div>
+            <div class="pill">Stupnik Bike Admin</div>
             <h1 style="margin: 14px 0 8px; font-size: 34px;">Prijava</h1>
             <p class="muted" style="margin: 0 0 24px;">Uđi u administraciju općinskog sustava za najam bicikala.</p>
 

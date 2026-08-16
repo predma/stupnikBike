@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Sibinj Bike Admin' }}</title>
+    <title>{{ $title ?? 'Stupnik Bike Admin' }}</title>
     <style>
         :root {
             --bg: #07111f;
@@ -255,8 +255,8 @@
                 <div class="brand">
                     <div class="brand-badge"></div>
                     <div>
-                        <h1>Sibinj Bike</h1>
-                        <p>Laravel admin dashboard</p>
+                        <h1>Stupnik Bike</h1>
+                        <p>Admin dashboard</p>
                     </div>
                 </div>
 
