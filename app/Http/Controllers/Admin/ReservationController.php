@@ -68,6 +68,7 @@ class ReservationController extends Controller
                 'status' => 'confirmed',
                 'payment_status' => 'unpaid',
                 'reservation_date' => now()->toDateString(),
+                'reservation_end_date' => now()->toDateString(),
             ],
         ]);
     }
@@ -127,6 +128,7 @@ class ReservationController extends Controller
         $data = $request->validate([
             'bike_id' => ['required', 'exists:bikes,id'],
             'date' => ['required', 'date'],
+            'calendar_from' => ['nullable', 'date'],
             'reservation_id' => ['nullable', 'exists:reservations,id'],
         ]);
 
@@ -137,7 +139,8 @@ class ReservationController extends Controller
             'data' => $this->availability->availability(
                 $bike,
                 CarbonImmutable::parse($data['date']),
-                $reservation
+                $reservation,
+                ! empty($data['calendar_from']) ? CarbonImmutable::parse($data['calendar_from']) : null
             ),
         ]);
     }
@@ -192,6 +195,7 @@ class ReservationController extends Controller
             'starts_at' => optional($reservation->starts_at)?->format('Y-m-d\TH:i'),
             'ends_at' => optional($reservation->ends_at)?->format('Y-m-d\TH:i'),
             'reservation_date' => optional($reservation->starts_at)?->format('Y-m-d'),
+            'reservation_end_date' => optional($reservation->ends_at)?->format('Y-m-d'),
             'quantity' => $reservation->quantity ?? 1,
             'payment_status' => $reservation->payment_status ?? 'unpaid',
             'payment_method' => $reservation->payment_method,

@@ -15,6 +15,7 @@ class ReservationSetting extends Model
         'name',
         'mode',
         'effective_from',
+        'max_days_per_reservation',
         'slots',
         'is_active',
         'notes',
@@ -22,6 +23,7 @@ class ReservationSetting extends Model
 
     protected $casts = [
         'effective_from' => 'date',
+        'max_days_per_reservation' => 'integer',
         'slots' => 'array',
         'is_active' => 'boolean',
     ];

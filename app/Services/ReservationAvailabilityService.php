@@ -50,6 +50,7 @@ class ReservationAvailabilityService
                 'name' => $setting->name,
                 'mode' => $setting->mode,
                 'effective_from' => $setting->effective_from?->toDateString(),
+                'max_days_per_reservation' => (int) ($setting->max_days_per_reservation ?: 1),
                 'slots' => $setting->normalizedSlots(),
             ],
             'days' => $this->days($bike, $setting, $calendarFrom ?? $date, $ignoreReservation),
@@ -90,6 +91,17 @@ class ReservationAvailabilityService
             }
         }
 
+        if ($setting->isDaily()) {
+            $requestedDays = (int) $startsAt->startOfDay()->diffInDays($endsAt->startOfDay()) + 1;
+            $maxDays = max(1, (int) ($setting->max_days_per_reservation ?: 1));
+
+            if ($requestedDays > $maxDays) {
+                throw ValidationException::withMessages([
+                    'ends_at' => "Jedna rezervacija može trajati najviše {$maxDays} dana.",
+                ]);
+            }
+        }
+
         $availableUnits = $setting->isDaily()
             ? $this->availableUnitsForDailyRange($bike, $startsAt, $endsAt, $ignoreReservation)
             : $this->availableUnitsForRange($bike, $startsAt, $endsAt, $ignoreReservation);
@@ -109,6 +121,7 @@ class ReservationAvailabilityService
             'name' => 'Default daily',
             'mode' => 'daily',
             'effective_from' => now()->toDateString(),
+            'max_days_per_reservation' => 1,
             'slots' => [],
             'is_active' => true,
         ]);
@@ -123,7 +136,9 @@ class ReservationAvailabilityService
             $start = $effectiveFrom;
         }
 
-        return collect(range(0, 29))->map(function (int $offset) use ($bike, $setting, $start, $ignoreReservation) {
+        $daysToReturn = max(30, (int) ($setting->max_days_per_reservation ?: 1));
+
+        return collect(range(0, $daysToReturn - 1))->map(function (int $offset) use ($bike, $setting, $start, $ignoreReservation) {
             $day = $start->addDays($offset);
             $availableUnits = $setting->isDaily()
                 ? $this->availableUnitsForDay($bike, $day, $ignoreReservation)

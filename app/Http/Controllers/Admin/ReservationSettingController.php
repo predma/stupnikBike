@@ -17,13 +17,14 @@ class ReservationSettingController extends Controller
         return view('admin.resources.index', [
             'title' => 'Rezervacijske postavke',
             'subtitle' => 'Pravila za dnevne i satne rezervacije po biciklima.',
-            'headers' => ['Naziv', 'Način', 'Vrijedi od', 'Bicikli', 'Turnusi', 'Aktivno'],
+            'headers' => ['Naziv', 'Način', 'Vrijedi od', 'Max dana', 'Bicikli', 'Turnusi', 'Aktivno'],
             'createUrl' => route('admin.reservation-settings.create'),
             'rows' => $settings->map(fn (ReservationSetting $setting) => [
                 'cells' => [
                     $setting->name,
                     $setting->mode === 'hourly' ? 'Po satu' : 'Dnevno',
                     $setting->effective_from?->format('d.m.Y.'),
+                    $setting->max_days_per_reservation,
                     $setting->bikes->pluck('name')->implode(', ') ?: '-',
                     $setting->isHourly() ? count($setting->normalizedSlots()) : 'N/A',
                     $setting->is_active ? 'Da' : 'Ne',
@@ -43,7 +44,7 @@ class ReservationSettingController extends Controller
             'method' => 'POST',
             'backUrl' => route('admin.reservation-settings.index'),
             'fields' => $this->fields(),
-            'values' => [],
+            'values' => ['max_days_per_reservation' => 1, 'is_active' => true],
         ]);
     }
 
@@ -54,6 +55,7 @@ class ReservationSettingController extends Controller
             'name' => $data['name'],
             'mode' => $data['mode'],
             'effective_from' => $data['effective_from'],
+            'max_days_per_reservation' => $data['max_days_per_reservation'],
             'slots' => $this->parseSlots($data['slots_input'] ?? ''),
             'is_active' => $request->boolean('is_active'),
             'notes' => $data['notes'] ?? null,
@@ -88,6 +90,7 @@ class ReservationSettingController extends Controller
             'name' => $data['name'],
             'mode' => $data['mode'],
             'effective_from' => $data['effective_from'],
+            'max_days_per_reservation' => $data['max_days_per_reservation'],
             'slots' => $this->parseSlots($data['slots_input'] ?? ''),
             'is_active' => $request->boolean('is_active'),
             'notes' => $data['notes'] ?? null,
@@ -111,6 +114,7 @@ class ReservationSettingController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'mode' => ['required', 'in:daily,hourly'],
             'effective_from' => ['required', 'date'],
+            'max_days_per_reservation' => ['required', 'integer', 'min:1', 'max:365'],
             'bike_ids' => ['required', 'array', 'min:1'],
             'bike_ids.*' => ['exists:bikes,id'],
             'slots_input' => ['nullable', 'string'],
@@ -169,6 +173,7 @@ class ReservationSettingController extends Controller
                 'hourly' => 'Po satu',
             ]],
             ['name' => 'effective_from', 'label' => 'Vrijedi od', 'type' => 'date', 'required' => true],
+            ['name' => 'max_days_per_reservation', 'label' => 'Max dana po rezervaciji', 'type' => 'number', 'required' => true, 'hint' => 'Za dnevne rezervacije korisnik ne može odabrati više od ovog broja dana. Za satne ostavi 1.'],
             ['name' => 'bike_ids', 'label' => 'Bicikli', 'type' => 'multiselect', 'required' => true, 'options' => Bike::orderBy('name')->pluck('name', 'id')->all()],
             ['name' => 'slots_input', 'label' => 'Turnusi', 'type' => 'textarea', 'hint' => 'Za satni način upiši jedan turnus po retku u formatu 08:00-10:00. Za dnevni način ostavi prazno.'],
             ['name' => 'notes', 'label' => 'Napomena', 'type' => 'textarea'],

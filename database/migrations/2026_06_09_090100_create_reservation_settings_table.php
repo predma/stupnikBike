@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('mode')->default('daily');
             $table->date('effective_from');
+            $table->unsignedSmallInteger('max_days_per_reservation')->default(1);
             $table->json('slots')->nullable();
             $table->boolean('is_active')->default(true);
             $table->text('notes')->nullable();

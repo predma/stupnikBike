@@ -93,6 +93,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Dnevne rezervacije',
             'mode' => 'daily',
             'effective_from' => now()->toDateString(),
+            'max_days_per_reservation' => 7,
             'slots' => null,
             'is_active' => true,
             'notes' => 'Dnevni model rezervacije za oba veličinska modela.',
@@ -103,6 +104,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Satne rezervacije',
             'mode' => 'hourly',
             'effective_from' => now()->addDay()->toDateString(),
+            'max_days_per_reservation' => 1,
             'slots' => [
                 ['start' => '08:00', 'end' => '10:00'],
                 ['start' => '10:00', 'end' => '12:00'],

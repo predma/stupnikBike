@@ -68,8 +68,14 @@
                 </div>
 
                 <div class="field">
-                    <label class="muted" for="reservation_date">Za kada <span style="color:#fda4af;">*</span></label>
+                    <label class="muted" for="reservation_date">Od datuma <span style="color:#fda4af;">*</span></label>
                     <input id="reservation_date" name="reservation_date" type="date" value="{{ old('reservation_date', $values['reservation_date'] ?? now()->toDateString()) }}" required>
+                </div>
+
+                <div class="field">
+                    <label class="muted" for="reservation_end_date">Do datuma <span style="color:#fda4af;">*</span></label>
+                    <input id="reservation_end_date" name="reservation_end_date" type="date" value="{{ old('reservation_end_date', $values['reservation_end_date'] ?? old('reservation_date', $values['reservation_date'] ?? now()->toDateString())) }}" required>
+                    <div id="date-range-help" class="muted" style="font-size: 12px;">Za dnevne rezervacije možeš odabrati više dana prema postavci.</div>
                 </div>
 
                 <div class="field" id="slot-field" style="display:none;">
@@ -141,6 +147,8 @@
             const form = document.getElementById('reservation-form');
             const bike = document.getElementById('bike_id');
             const date = document.getElementById('reservation_date');
+            const endDate = document.getElementById('reservation_end_date');
+            const dateRangeHelp = document.getElementById('date-range-help');
             const slotField = document.getElementById('slot-field');
             const slot = document.getElementById('slot');
             const quantity = document.getElementById('quantity');
@@ -158,6 +166,28 @@
             let currentMax = 0;
 
             const pad = (value) => String(value).padStart(2, '0');
+            const addDays = (value, amount) => {
+                const next = new Date(`${value}T00:00:00`);
+                next.setDate(next.getDate() + amount);
+                return next.toISOString().slice(0, 10);
+            };
+            const daysBetween = (start, end) => Math.max(1, Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1);
+            const normalizeRange = () => {
+                if (!date.value) {
+                    return;
+                }
+
+                if (!endDate.value || endDate.value < date.value) {
+                    endDate.value = date.value;
+                }
+            };
+            const selectedRangeDays = () => {
+                normalizeRange();
+                const totalDays = daysBetween(date.value, endDate.value);
+                const byDate = new Map((currentAvailability?.days || []).map((item) => [item.date, item]));
+
+                return Array.from({ length: totalDays }, (_, index) => byDate.get(addDays(date.value, index)));
+            };
 
             function setHiddenTimes() {
                 if (!date.value) {
@@ -173,8 +203,9 @@
                     return;
                 }
 
+                normalizeRange();
                 startsAt.value = `${date.value}T00:00`;
-                endsAt.value = `${date.value}T23:59`;
+                endsAt.value = `${endDate.value}T23:59`;
             }
 
             function applyMax(max) {
@@ -199,6 +230,7 @@
             function updatePrice() {
                 const pricing = currentAvailability?.pricing;
                 const count = Math.max(1, Number(quantity.value || 1));
+                const dayCount = currentAvailability?.setting?.mode === 'daily' ? daysBetween(date.value, endDate.value) : 1;
 
                 if (!pricing?.has_price) {
                     totalPrice.value = '0.00';
@@ -206,9 +238,43 @@
                     return false;
                 }
 
-                const value = Number(pricing.price || 0) * count;
+                const value = Number(pricing.price || 0) * count * dayCount;
                 totalPrice.value = value.toFixed(2);
-                priceHelp.textContent = `Cijena: ${Number(pricing.price).toFixed(2)} EUR × ${count}.`;
+                priceHelp.textContent = `Cijena: ${Number(pricing.price).toFixed(2)} EUR × ${count} × ${dayCount} dan(a).`;
+                return true;
+            }
+
+            function applyDailyRangeLimits() {
+                if (currentAvailability?.setting?.mode !== 'daily') {
+                    endDate.disabled = true;
+                    endDate.value = date.value;
+                    dateRangeHelp.textContent = 'Satna rezervacija koristi samo jedan dan i odabrani termin.';
+                    return true;
+                }
+
+                endDate.disabled = false;
+                normalizeRange();
+                const maxDays = Math.max(1, Number(currentAvailability.setting.max_days_per_reservation || 1));
+                const pickedDays = daysBetween(date.value, endDate.value);
+
+                if (pickedDays > maxDays) {
+                    endDate.value = addDays(date.value, maxDays - 1);
+                }
+
+                const range = selectedRangeDays();
+                const missingDay = range.find((item) => !item);
+                const unavailableDay = range.find((item) => item && !item.available);
+                const rangeMax = range.length ? Math.min(...range.map((item) => Number(item?.available_units || 0))) : 0;
+
+                dateRangeHelp.textContent = `Odabrano: ${daysBetween(date.value, endDate.value)} dan(a). Maksimalno po rezervaciji: ${maxDays}.`;
+
+                if (missingDay || unavailableDay) {
+                    applyMax(0);
+                    help.textContent = 'Odabrani raspon nije slobodan kroz sve dane.';
+                    return false;
+                }
+
+                applyMax(rangeMax);
                 return true;
             }
 
@@ -216,19 +282,24 @@
                 currentAvailability = data;
                 const mode = data.setting.mode === 'hourly' ? 'satna rezervacija' : 'dnevna rezervacija';
                 const price = data.pricing?.has_price ? `${Number(data.pricing.price).toFixed(2)} EUR` : 'cjenik nije definiran';
-                summary.textContent = `Lager: ${data.stock_quantity}. Za ${data.selected_date} dostupno: ${data.max_quantity}. Model: ${mode}. Cijena: ${price}.`;
+                const maxDays = Math.max(1, Number(data.setting.max_days_per_reservation || 1));
+                summary.textContent = `Lager: ${data.stock_quantity}. Model: ${mode}. Max dana: ${maxDays}. Cijena: ${price}.`;
 
                 days.innerHTML = '';
                 data.days.forEach((day) => {
+                    const reserved = Math.max(0, Number(data.stock_quantity || 0) - Number(day.available_units || 0));
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.className = 'btn secondary';
                     button.style.padding = '8px 10px';
                     button.style.opacity = day.available ? '1' : '0.45';
-                    button.textContent = `${day.date} (${day.available_units})`;
+                    button.textContent = `${day.date} · slobodno ${day.available_units} · rezervirano ${reserved}`;
                     button.disabled = !day.available;
                     button.addEventListener('click', () => {
                         date.value = day.date;
+                        if (endDate.value < date.value) {
+                            endDate.value = date.value;
+                        }
                         loadAvailability();
                     });
                     days.appendChild(button);
@@ -249,7 +320,7 @@
                     applyMax(selected ? selected.dataset.max : 0);
                 } else {
                     slotField.style.display = 'none';
-                    applyMax(data.max_quantity);
+                    applyDailyRangeLimits();
                 }
 
                 setHiddenTimes();
@@ -264,7 +335,8 @@
                 summary.textContent = 'Provjeravam dostupnost...';
                 const params = new URLSearchParams({
                     bike_id: bike.value,
-                    date: date.value
+                    date: date.value,
+                    calendar_from: date.value
                 });
 
                 if (reservationId) {
@@ -285,6 +357,14 @@
 
             bike.addEventListener('change', loadAvailability);
             date.addEventListener('change', loadAvailability);
+            endDate.addEventListener('change', () => {
+                normalizeRange();
+                if (currentAvailability?.setting?.mode === 'daily') {
+                    applyDailyRangeLimits();
+                }
+                setHiddenTimes();
+                updatePrice();
+            });
             slot.addEventListener('change', () => {
                 const selected = slot.selectedOptions[0];
                 applyMax(selected ? selected.dataset.max : 0);
