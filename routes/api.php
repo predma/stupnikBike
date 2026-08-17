@@ -33,6 +33,7 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/reservations/{reservation}', [ReservationController::class, 'update']);
         Route::post('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel']);
         Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
         Route::get('/issues', [IssueController::class, 'index']);
         Route::post('/issues', [IssueController::class, 'store']);
     });
