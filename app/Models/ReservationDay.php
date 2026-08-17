@@ -13,7 +13,7 @@ class ReservationDay extends Model
     ];
 
     protected $casts = [
-        'reservation_date' => 'date',
+        'reservation_date' => 'date:Y-m-d',
     ];
 
     public function reservation(): BelongsTo
