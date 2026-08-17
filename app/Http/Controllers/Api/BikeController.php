@@ -44,9 +44,12 @@ class BikeController extends Controller
         $reservation = $request->filled('reservation_id')
             ? Reservation::query()->where('user_id', $request->user()->id)->findOrFail($request->integer('reservation_id'))
             : null;
+        $calendarFrom = $request->filled('calendar_from')
+            ? CarbonImmutable::parse((string) $request->string('calendar_from'))
+            : null;
 
         return response()->json([
-            'data' => $this->availability->availability($bike, $date, $reservation),
+            'data' => $this->availability->availability($bike, $date, $reservation, $calendarFrom),
         ]);
     }
 

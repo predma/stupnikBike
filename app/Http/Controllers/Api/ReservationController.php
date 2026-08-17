@@ -53,7 +53,7 @@ class ReservationController extends Controller
         $endsAt = CarbonImmutable::parse($data['ends_at']);
         $stationId = $data['station_id'] ?? $bike->station_id;
         $this->availability->validateOrFail($bike, $startsAt, $endsAt, $quantity);
-        $totalPrice = $this->pricing->calculateTotal($bike, $startsAt, $quantity, 'daily');
+        $totalPrice = $this->pricing->calculateTotalForRange($bike, $startsAt, $endsAt, $quantity, 'daily');
 
         $reservation = Reservation::create([
             'reservation_number' => sprintf('SB-%s', Str::upper(Str::random(8))),
@@ -110,7 +110,7 @@ class ReservationController extends Controller
             'quantity' => $quantity,
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
-            'total_price' => $this->pricing->calculateTotal($bike, $startsAt, $quantity, 'daily'),
+            'total_price' => $this->pricing->calculateTotalForRange($bike, $startsAt, $endsAt, $quantity, 'daily'),
             'notes' => $data['notes'] ?? $reservation->notes,
         ]);
 

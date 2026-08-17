@@ -176,9 +176,10 @@ class ReservationController extends Controller
 
     private function calculateTotal(array $data): float
     {
-        return $this->pricing->calculateTotal(
+        return $this->pricing->calculateTotalForRange(
             Bike::findOrFail($data['bike_id']),
             CarbonImmutable::parse($data['starts_at']),
+            CarbonImmutable::parse($data['ends_at']),
             (int) $data['quantity'],
             'daily'
         );

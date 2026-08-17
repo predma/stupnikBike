@@ -46,4 +46,27 @@ class BikePricingService
 
         return round((float) $price->price * max(1, $quantity), 2);
     }
+
+    public function calculateTotalForRange(
+        Bike $bike,
+        CarbonImmutable $startsAt,
+        CarbonImmutable $endsAt,
+        int $quantity,
+        string $billingType = 'daily'
+    ): float {
+        if ($billingType !== 'daily') {
+            return $this->calculateTotal($bike, $startsAt, $quantity, $billingType);
+        }
+
+        $start = $startsAt->startOfDay();
+        $end = $endsAt->startOfDay();
+        $days = max(1, (int) $start->diffInDays($end) + 1);
+        $total = 0;
+
+        foreach (range(0, $days - 1) as $offset) {
+            $total += $this->calculateTotal($bike, $start->addDays($offset), $quantity, $billingType);
+        }
+
+        return round($total, 2);
+    }
 }

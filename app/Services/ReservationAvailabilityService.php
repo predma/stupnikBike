@@ -14,7 +14,12 @@ class ReservationAvailabilityService
     {
     }
 
-    public function availability(Bike $bike, CarbonImmutable $date, ?Reservation $ignoreReservation = null): array
+    public function availability(
+        Bike $bike,
+        CarbonImmutable $date,
+        ?Reservation $ignoreReservation = null,
+        ?CarbonImmutable $calendarFrom = null
+    ): array
     {
         $setting = $this->settingFor($bike, $date);
         $slots = $setting->isHourly()
@@ -47,7 +52,7 @@ class ReservationAvailabilityService
                 'effective_from' => $setting->effective_from?->toDateString(),
                 'slots' => $setting->normalizedSlots(),
             ],
-            'days' => $this->days($bike, $setting, $date, $ignoreReservation),
+            'days' => $this->days($bike, $setting, $calendarFrom ?? $date, $ignoreReservation),
             'slots' => $slots,
         ];
     }
@@ -67,13 +72,13 @@ class ReservationAvailabilityService
             ]);
         }
 
-        if ($setting->isDaily() && ! $startsAt->isSameDay($endsAt)) {
-            throw ValidationException::withMessages([
-                'starts_at' => 'Dnevna rezervacija mora biti unutar istog dana.',
-            ]);
-        }
-
         if ($setting->isHourly()) {
+            if (! $startsAt->isSameDay($endsAt)) {
+                throw ValidationException::withMessages([
+                    'starts_at' => 'Satna rezervacija mora biti unutar istog dana.',
+                ]);
+            }
+
             $matchesSlot = collect($setting->normalizedSlots())->contains(function (array $slot) use ($startsAt, $endsAt): bool {
                 return $startsAt->format('H:i') === $slot['start'] && $endsAt->format('H:i') === $slot['end'];
             });
@@ -86,7 +91,7 @@ class ReservationAvailabilityService
         }
 
         $availableUnits = $setting->isDaily()
-            ? $this->availableUnitsForDay($bike, $startsAt, $ignoreReservation)
+            ? $this->availableUnitsForDailyRange($bike, $startsAt, $endsAt, $ignoreReservation)
             : $this->availableUnitsForRange($bike, $startsAt, $endsAt, $ignoreReservation);
 
         if ($quantity > $availableUnits) {
@@ -141,6 +146,22 @@ class ReservationAvailabilityService
             ->sum('quantity');
 
         return max(0, (int) $bike->stock_quantity - $reserved);
+    }
+
+    private function availableUnitsForDailyRange(Bike $bike, CarbonImmutable $startsAt, CarbonImmutable $endsAt, ?Reservation $ignoreReservation = null): int
+    {
+        $start = $startsAt->startOfDay();
+        $end = $endsAt->startOfDay();
+
+        if ($end->lessThan($start)) {
+            return 0;
+        }
+
+        $days = (int) $start->diffInDays($end) + 1;
+
+        return collect(range(0, $days - 1))
+            ->map(fn (int $offset) => $this->availableUnitsForDay($bike, $start->addDays($offset), $ignoreReservation))
+            ->min() ?? 0;
     }
 
     private function availableUnitsForSlots(Bike $bike, ReservationSetting $setting, CarbonImmutable $day, ?Reservation $ignoreReservation): int
