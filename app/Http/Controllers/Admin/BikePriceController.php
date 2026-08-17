@@ -62,11 +62,13 @@ class BikePriceController extends Controller
     {
         return view('admin.resources.form', [
             'title' => 'Uredi cijenu',
-            'subtitle' => 'Uređivanje je namijenjeno budućim cijenama.',
+            'subtitle' => $this->isHistorical($bikePrice)
+                ? 'Cijena je već počela vrijediti. Možeš promijeniti iznos, aktivnost i napomenu; bicikl i datum ostaju zaključani.'
+                : 'Uredi buduću cijenu prije nego počne vrijediti.',
             'action' => route('admin.bike-prices.update', $bikePrice),
             'method' => 'PUT',
             'backUrl' => route('admin.bike-prices.index'),
-            'fields' => $this->fields(),
+            'fields' => $this->fields($bikePrice),
             'values' => [
                 ...$bikePrice->toArray(),
                 'effective_from' => $bikePrice->effective_from?->format('Y-m-d'),
@@ -76,8 +78,10 @@ class BikePriceController extends Controller
 
     public function update(Request $request, BikePrice $bikePrice)
     {
-        if ($bikePrice->effective_from->isPast() && ! $bikePrice->effective_from->isToday()) {
-            return redirect()->route('admin.bike-prices.index')->with('status', 'Prošle cijene se ne uređuju. Dodaj novu cijenu s budućim datumom.');
+        if ($this->isHistorical($bikePrice)) {
+            $bikePrice->update($this->validateHistoricalRequest($request));
+
+            return redirect()->route('admin.bike-prices.index')->with('status', 'Cijena je ažurirana.');
         }
 
         $bikePrice->update($this->validateRequest($request, $bikePrice->id));
@@ -119,15 +123,35 @@ class BikePriceController extends Controller
         return $data;
     }
 
-    private function fields(): array
+    private function validateHistoricalRequest(Request $request): array
     {
+        $data = $request->validate([
+            'price' => ['required', 'numeric', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $data['is_active'] = $request->boolean('is_active');
+
+        return $data;
+    }
+
+    private function isHistorical(BikePrice $bikePrice): bool
+    {
+        return $bikePrice->effective_from->isPast() || $bikePrice->effective_from->isToday();
+    }
+
+    private function fields(?BikePrice $bikePrice = null): array
+    {
+        $locked = $bikePrice && $this->isHistorical($bikePrice);
+
         return [
-            ['name' => 'bike_id', 'label' => 'Bicikl', 'type' => 'select', 'required' => true, 'options' => Bike::orderBy('name')->orderBy('size')->get()->mapWithKeys(fn (Bike $bike) => [
+            ['name' => 'bike_id', 'label' => 'Bicikl', 'type' => 'select', 'required' => true, 'disabled' => $locked, 'hint' => $locked ? 'Zaključano jer je cijena već počela vrijediti.' : null, 'options' => Bike::orderBy('name')->orderBy('size')->get()->mapWithKeys(fn (Bike $bike) => [
                 $bike->id => trim($bike->code.' · '.$bike->name.' '.($bike->size ? '('.$bike->size.')' : '')),
             ])->all()],
-            ['name' => 'effective_from', 'label' => 'Vrijedi od', 'type' => 'date', 'required' => true],
+            ['name' => 'effective_from', 'label' => 'Vrijedi od', 'type' => 'date', 'required' => true, 'disabled' => $locked, 'hint' => $locked ? 'Za novi datum dodaj novu cijenu.' : null],
             ['name' => 'price', 'label' => 'Cijena', 'type' => 'number', 'step' => '0.01', 'required' => true],
-            ['name' => 'billing_type', 'label' => 'Tip obračuna', 'type' => 'select', 'required' => true, 'options' => [
+            ['name' => 'billing_type', 'label' => 'Tip obračuna', 'type' => 'select', 'required' => true, 'disabled' => $locked, 'options' => [
                 'daily' => 'Dnevno',
             ]],
             ['name' => 'notes', 'label' => 'Napomena', 'type' => 'textarea'],

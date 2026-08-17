@@ -22,6 +22,7 @@
                         $value = old($field['name'], $values[$field['name']] ?? '');
                         $fieldType = $field['type'] ?? 'text';
                         $inputType = $fieldType === 'datetime-local' ? 'datetime-local' : ($fieldType === 'password' ? 'password' : $fieldType);
+                        $disabled = !empty($field['disabled']);
                     @endphp
 
                     <div class="field">
@@ -33,9 +34,9 @@
                         </label>
 
                         @if ($fieldType === 'textarea')
-                            <textarea id="{{ $field['name'] }}" name="{{ $field['name'] }}" rows="4">{{ $value }}</textarea>
+                            <textarea id="{{ $field['name'] }}" name="{{ $field['name'] }}" rows="4" @disabled($disabled)>{{ $value }}</textarea>
                         @elseif ($fieldType === 'select')
-                            <select id="{{ $field['name'] }}" name="{{ $field['name'] }}">
+                            <select id="{{ $field['name'] }}" name="{{ $field['name'] }}" @disabled($disabled)>
                                 <option value="">Odaberi</option>
                                 @foreach ($field['options'] as $optionValue => $optionLabel)
                                     <option value="{{ $optionValue }}" @selected((string) $value === (string) $optionValue)>{{ $optionLabel }}</option>
@@ -45,7 +46,7 @@
                             @php
                                 $selectedValues = collect(old($field['name'], $values[$field['name']] ?? []))->map(fn ($item) => (string) $item)->all();
                             @endphp
-                            <select id="{{ $field['name'] }}" name="{{ $field['name'] }}[]" multiple size="{{ min(8, max(3, count($field['options']))) }}">
+                            <select id="{{ $field['name'] }}" name="{{ $field['name'] }}[]" multiple size="{{ min(8, max(3, count($field['options']))) }}" @disabled($disabled)>
                                 @foreach ($field['options'] as $optionValue => $optionLabel)
                                     <option value="{{ $optionValue }}" @selected(in_array((string) $optionValue, $selectedValues, true))>{{ $optionLabel }}</option>
                                 @endforeach
@@ -53,7 +54,7 @@
                             <div class="muted" style="font-size: 12px;">Drži `Cmd`/`Ctrl` za višestruki odabir.</div>
                         @elseif ($fieldType === 'checkbox')
                             <label style="display:flex; align-items:center; gap:10px;">
-                                <input type="checkbox" name="{{ $field['name'] }}" value="1" @checked((bool) $value)>
+                                <input type="checkbox" name="{{ $field['name'] }}" value="1" @checked((bool) $value) @disabled($disabled)>
                                 <span>{{ $field['label'] }}</span>
                             </label>
                         @elseif ($fieldType === 'image')
@@ -65,12 +66,14 @@
                                     value="{{ $value }}"
                                     placeholder="/storage/media/bicikli/slika.jpg"
                                     data-image-input="{{ $field['name'] }}"
+                                    @disabled($disabled)
                                 >
                                 <button
                                     class="btn secondary"
                                     type="button"
                                     data-open-file-manager
                                     data-target="{{ $field['name'] }}"
+                                    @disabled($disabled)
                                 >
                                     Odaberi iz File Managera
                                 </button>
@@ -91,6 +94,7 @@
                                     value="{{ $value }}"
                                 @endif
                                 step="{{ $field['step'] ?? 'any' }}"
+                                @disabled($disabled)
                             >
                         @endif
 
