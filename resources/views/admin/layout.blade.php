@@ -633,6 +633,7 @@
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.issues') ? 'active' : '' }}" href="{{ route('admin.issues.index') }}">Kvarovi</a>
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.notifications') ? 'active' : '' }}" href="{{ route('admin.notifications.index') }}">Obavijesti</a>
                     <a class="{{ str_contains($currentRoute ?? '', 'admin.users') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">Korisnici</a>
+                    <a class="{{ str_contains($currentRoute ?? '', 'admin.settings') ? 'active' : '' }}" href="{{ route('admin.settings.edit') }}">Postavke</a>
                 </nav>
             </aside>
 

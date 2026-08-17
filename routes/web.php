@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\BikePriceController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ReservationController;
 use App\Http\Controllers\Admin\ReservationSettingController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StationController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -43,5 +44,7 @@ Route::prefix('admin')->name('admin.')->group(function (): void {
         Route::resource('users', UserController::class)->except(['show']);
         Route::resource('issues', IssueController::class)->except(['show']);
         Route::resource('notifications', NotificationController::class)->except(['show']);
+        Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
     });
 });

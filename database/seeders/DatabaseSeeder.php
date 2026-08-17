@@ -8,6 +8,7 @@ use App\Models\Issue;
 use App\Models\Notification;
 use App\Models\Reservation;
 use App\Models\ReservationSetting;
+use App\Models\Setting;
 use App\Models\Station;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -33,6 +34,7 @@ class DatabaseSeeder extends Seeder
         Notification::query()->delete();
         Reservation::query()->delete();
         ReservationSetting::query()->delete();
+        Setting::query()->delete();
         BikePrice::query()->delete();
         Bike::query()->delete();
         Station::query()->delete();
@@ -59,6 +61,13 @@ class DatabaseSeeder extends Seeder
             'phone' => '+385 91 111 1111',
             'is_active' => true,
             'api_token' => null,
+        ]);
+
+        Setting::query()->create([
+            'key' => 'app',
+            'value' => [
+                'contact_email' => 'rent@stupnik.bike',
+            ],
         ]);
 
         $settingsBikes = collect([

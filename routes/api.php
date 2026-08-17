@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\IssueController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReservationController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\StationController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,7 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail']);
     Route::post('/auth/resend-email-code', [AuthController::class, 'resendEmailVerification']);
+    Route::get('/settings', SettingController::class);
 
     Route::middleware('api.token')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
