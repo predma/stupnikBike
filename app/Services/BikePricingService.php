@@ -69,4 +69,15 @@ class BikePricingService
 
         return round($total, 2);
     }
+
+    public function calculateTotalForDays(Bike $bike, array $dates, int $quantity, string $billingType = 'daily'): float
+    {
+        $total = 0;
+
+        foreach ($dates as $date) {
+            $total += $this->calculateTotal($bike, CarbonImmutable::parse((string) $date), $quantity, $billingType);
+        }
+
+        return round($total, 2);
+    }
 }

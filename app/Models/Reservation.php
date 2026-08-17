@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reservation extends Model
 {
@@ -50,5 +51,10 @@ class Reservation extends Model
     public function station()
     {
         return $this->belongsTo(Station::class);
+    }
+
+    public function days(): HasMany
+    {
+        return $this->hasMany(ReservationDay::class)->orderBy('reservation_date');
     }
 }

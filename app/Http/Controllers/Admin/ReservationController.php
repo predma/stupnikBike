@@ -25,12 +25,12 @@ class ReservationController extends Controller
 
     public function index()
     {
-        $reservations = Reservation::with(['user', 'bike', 'station'])->latest()->get();
+        $reservations = Reservation::with(['user', 'bike', 'station', 'days'])->latest()->get();
 
         return view('admin.resources.index', [
             'title' => 'Rezervacije',
             'subtitle' => 'CRUD za rezervacije i njihov status.',
-            'headers' => ['Broj', 'Korisnik', 'Bicikl', 'Količina', 'Stanica', 'Status', 'Plaćanje', 'Način', 'Početak', 'Kraj'],
+            'headers' => ['Broj', 'Korisnik', 'Bicikl', 'Količina', 'Dani', 'Stanica', 'Status', 'Plaćanje', 'Način', 'Početak', 'Kraj'],
             'createUrl' => route('admin.reservations.create'),
             'rows' => $reservations->map(fn (Reservation $reservation) => [
                 'cells' => [
@@ -38,6 +38,7 @@ class ReservationController extends Controller
                     $reservation->user?->name ?? '-',
                     $reservation->bike?->name ?? '-',
                     $reservation->quantity,
+                    $reservation->days->pluck('reservation_date')->map(fn ($date) => $date?->format('d.m.Y.'))->implode(', ') ?: '-',
                     $reservation->station?->name ?? '-',
                     $reservation->status,
                     $reservation->payment_status ?? 'unpaid',
@@ -82,7 +83,8 @@ class ReservationController extends Controller
         $data['payment_method'] = $data['payment_status'] === 'paid' ? ($data['payment_method'] ?? null) : null;
         $data['paid_at'] = $data['payment_status'] === 'paid' ? now() : null;
         $data['total_price'] = $this->calculateTotal($data);
-        Reservation::create($data);
+        $reservation = Reservation::create($data);
+        $this->syncReservationDaysFromRange($reservation);
 
         return redirect()->route('admin.reservations.index')->with('status', 'Rezervacija je kreirana.');
     }
@@ -112,6 +114,7 @@ class ReservationController extends Controller
         $data['paid_at'] = $data['payment_status'] === 'paid' ? ($reservation->paid_at ?? now()) : null;
         $data['total_price'] = $this->calculateTotal($data);
         $reservation->update($data);
+        $this->syncReservationDaysFromRange($reservation);
 
         return redirect()->route('admin.reservations.index')->with('status', 'Rezervacija je ažurirana.');
     }
@@ -186,6 +189,21 @@ class ReservationController extends Controller
             (int) $data['quantity'],
             'daily'
         );
+    }
+
+    private function syncReservationDaysFromRange(Reservation $reservation): void
+    {
+        $start = CarbonImmutable::parse($reservation->starts_at)->startOfDay();
+        $end = CarbonImmutable::parse($reservation->ends_at)->startOfDay();
+        $days = max(1, (int) $start->diffInDays($end) + 1);
+
+        $reservation->days()->delete();
+
+        foreach (range(0, $days - 1) as $offset) {
+            $reservation->days()->create([
+                'reservation_date' => $start->addDays($offset)->toDateString(),
+            ]);
+        }
     }
 
     private function formatValues(Reservation $reservation): array

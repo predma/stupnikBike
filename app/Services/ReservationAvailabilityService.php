@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Bike;
 use App\Models\Reservation;
+use App\Models\ReservationDay;
 use App\Models\ReservationSetting;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
@@ -121,6 +122,62 @@ class ReservationAvailabilityService
         return $setting;
     }
 
+    public function validateDaysOrFail(
+        Bike $bike,
+        array $dates,
+        int $quantity,
+        ?Reservation $ignoreReservation = null
+    ): ReservationSetting {
+        $dates = $this->normalizeSelectedDates($dates);
+
+        if (empty($dates)) {
+            throw ValidationException::withMessages([
+                'reservation_days' => 'Odaberi barem jedan dan rezervacije.',
+            ]);
+        }
+
+        if ($quantity < 1) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Količina mora biti barem 1.',
+            ]);
+        }
+
+        $setting = $this->settingFor($bike, CarbonImmutable::parse($dates[0]));
+
+        if (! $setting->isDaily()) {
+            throw ValidationException::withMessages([
+                'reservation_days' => 'Odabir pojedinačnih dana dopušten je samo za dnevne rezervacije.',
+            ]);
+        }
+
+        $maxDays = max(1, (int) ($setting->max_days_per_reservation ?: 1));
+        if (count($dates) > $maxDays) {
+            throw ValidationException::withMessages([
+                'reservation_days' => "Jedna rezervacija može imati najviše {$maxDays} dana.",
+            ]);
+        }
+
+        $today = now()->toImmutable()->startOfDay();
+        foreach ($dates as $date) {
+            $day = CarbonImmutable::parse($date)->startOfDay();
+
+            if ($day->lessThan($today)) {
+                throw ValidationException::withMessages([
+                    'reservation_days' => 'Nije moguće rezervirati prošli datum.',
+                ]);
+            }
+
+            $availableUnits = $this->availableUnitsForDay($bike, $day, $ignoreReservation);
+            if ($quantity > $availableUnits) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Za {$day->format('d.m.Y.')} slobodno je još {$availableUnits} bicikala.",
+                ]);
+            }
+        }
+
+        return $setting;
+    }
+
     public function settingFor(Bike $bike, CarbonImmutable $date): ReservationSetting
     {
         return ReservationSetting::activeForBike($bike, $date) ?? new ReservationSetting([
@@ -147,7 +204,7 @@ class ReservationAvailabilityService
             $start = $effectiveFrom;
         }
 
-        $daysToReturn = max(30, (int) ($setting->max_days_per_reservation ?: 1));
+        $daysToReturn = max(42, (int) ($setting->max_days_per_reservation ?: 1));
 
         return collect(range(0, $daysToReturn - 1))->map(function (int $offset) use ($bike, $setting, $start, $ignoreReservation) {
             $day = $start->addDays($offset);
@@ -165,11 +222,25 @@ class ReservationAvailabilityService
 
     private function availableUnitsForDay(Bike $bike, CarbonImmutable $day, ?Reservation $ignoreReservation = null): int
     {
-        $reserved = (int) $this->baseReservationQuery($bike, $ignoreReservation)
+        $reservedFromSelectedDays = (int) ReservationDay::query()
+            ->whereDate('reservation_date', $day->toDateString())
+            ->whereHas('reservation', function ($query) use ($bike, $ignoreReservation) {
+                $query->where('bike_id', $bike->id)
+                    ->where('status', '!=', 'cancelled')
+                    ->when($ignoreReservation, fn ($q) => $q->whereKeyNot($ignoreReservation->getKey()));
+            })
+            ->with('reservation:id,quantity')
+            ->get()
+            ->sum(fn (ReservationDay $reservationDay) => (int) $reservationDay->reservation?->quantity);
+
+        $reservedFromLegacyRanges = (int) $this->baseReservationQuery($bike, $ignoreReservation)
+            ->whereDoesntHave('days')
             ->where(fn ($query) => $query->whereBetween('starts_at', [$day->startOfDay(), $day->endOfDay()])
                 ->orWhereBetween('ends_at', [$day->startOfDay(), $day->endOfDay()])
                 ->orWhere(fn ($q) => $q->where('starts_at', '<=', $day->startOfDay())->where('ends_at', '>=', $day->endOfDay())))
             ->sum('quantity');
+
+        $reserved = $reservedFromSelectedDays + $reservedFromLegacyRanges;
 
         return max(0, (int) $bike->stock_quantity - $reserved);
     }
@@ -229,5 +300,15 @@ class ReservationAvailabilityService
             ->where('bike_id', $bike->id)
             ->where('status', '!=', 'cancelled')
             ->when($ignoreReservation, fn ($query) => $query->whereKeyNot($ignoreReservation->getKey()));
+    }
+
+    public function normalizeSelectedDates(array $dates): array
+    {
+        return collect($dates)
+            ->map(fn ($date) => CarbonImmutable::parse((string) $date)->toDateString())
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 }
