@@ -166,10 +166,11 @@
             let currentMax = 0;
 
             const pad = (value) => String(value).padStart(2, '0');
+            const localDateKey = (value) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
             const addDays = (value, amount) => {
                 const next = new Date(`${value}T00:00:00`);
                 next.setDate(next.getDate() + amount);
-                return next.toISOString().slice(0, 10);
+                return localDateKey(next);
             };
             const daysBetween = (start, end) => Math.max(1, Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1);
             const normalizeRange = () => {

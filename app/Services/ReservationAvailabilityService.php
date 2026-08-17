@@ -73,6 +73,12 @@ class ReservationAvailabilityService
             ]);
         }
 
+        if ($startsAt->startOfDay()->lessThan(now()->toImmutable()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'starts_at' => 'Nije moguće rezervirati prošli datum.',
+            ]);
+        }
+
         if ($setting->isHourly()) {
             if (! $startsAt->isSameDay($endsAt)) {
                 throw ValidationException::withMessages([
@@ -130,7 +136,12 @@ class ReservationAvailabilityService
     private function days(Bike $bike, ReservationSetting $setting, CarbonImmutable $fromDate, ?Reservation $ignoreReservation): array
     {
         $start = $fromDate->startOfDay();
+        $today = now()->toImmutable()->startOfDay();
         $effectiveFrom = $setting->effective_from ? CarbonImmutable::parse($setting->effective_from)->startOfDay() : null;
+
+        if ($today->greaterThan($start)) {
+            $start = $today;
+        }
 
         if ($effectiveFrom && $effectiveFrom->greaterThan($start)) {
             $start = $effectiveFrom;
