@@ -18,8 +18,11 @@ class Bike extends Model
         'type',
         'status',
         'battery_level',
+        'gear_count',
         'price_per_hour',
         'description',
+        'equipment',
+        'technical_details',
         'image_url',
         'last_service_at',
     ];
@@ -27,6 +30,7 @@ class Bike extends Model
     protected $casts = [
         'stock_quantity' => 'integer',
         'battery_level' => 'integer',
+        'gear_count' => 'integer',
         'price_per_hour' => 'decimal:2',
         'last_service_at' => 'date',
     ];

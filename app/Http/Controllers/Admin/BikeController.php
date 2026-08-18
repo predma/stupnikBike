@@ -18,7 +18,7 @@ class BikeController extends Controller
         return view('admin.resources.index', [
             'title' => 'Bicikli',
             'subtitle' => 'CRUD za bicikle, veličine i lager.',
-            'headers' => ['Šifra', 'Naziv', 'Veličina', 'Lager', 'Stanica', 'Tip', 'Status'],
+            'headers' => ['Šifra', 'Naziv', 'Veličina', 'Lager', 'Brzina', 'Oprema', 'Stanica', 'Tip', 'Status'],
             'createUrl' => route('admin.bikes.create'),
             'rows' => $bikes->map(fn (Bike $bike) => [
                 'cells' => [
@@ -26,6 +26,8 @@ class BikeController extends Controller
                     $bike->name,
                     $bike->size ?? '-',
                     $bike->stock_quantity,
+                    $bike->gear_count ? $bike->gear_count.' brzina' : '-',
+                    $this->shortText($bike->equipment),
                     $bike->station?->name ?? '-',
                     $bike->type,
                     $bike->status,
@@ -56,6 +58,7 @@ class BikeController extends Controller
         $data['last_service_at'] = $data['last_service_at'] ?: null;
         $data['price_per_hour'] = 0;
         $data['battery_level'] = null;
+        $data['gear_count'] = $data['gear_count'] ?? null;
 
         Bike::create($data);
 
@@ -82,6 +85,7 @@ class BikeController extends Controller
         $data['last_service_at'] = $data['last_service_at'] ?: null;
         $data['price_per_hour'] = 0;
         $data['battery_level'] = null;
+        $data['gear_count'] = $data['gear_count'] ?? null;
 
         $bike->update($data);
 
@@ -106,10 +110,22 @@ class BikeController extends Controller
             'type' => ['required', 'string', 'max:255'],
             'status' => ['required', 'string', 'max:255'],
             'battery_level' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'gear_count' => ['nullable', 'integer', 'min:0', 'max:99'],
             'description' => ['nullable', 'string'],
+            'equipment' => ['nullable', 'string'],
+            'technical_details' => ['nullable', 'string'],
             'image_url' => ['nullable', 'string', 'max:255'],
             'last_service_at' => ['nullable', 'date'],
         ]);
+    }
+
+    private function shortText(?string $value): string
+    {
+        if (! $value) {
+            return '-';
+        }
+
+        return Str::limit($value, 80);
     }
 
     private function generateCode(string $name): string
@@ -125,9 +141,12 @@ class BikeController extends Controller
             ['name' => 'name', 'label' => 'Naziv', 'type' => 'text', 'required' => true],
             ['name' => 'size', 'label' => 'Veličina', 'type' => 'text'],
             ['name' => 'stock_quantity', 'label' => 'Lager', 'type' => 'number', 'required' => true, 'step' => '1'],
+            ['name' => 'gear_count', 'label' => 'Broj brzina', 'type' => 'number', 'step' => '1', 'hint' => 'Primjer: 21, 24, 27.'],
             ['name' => 'type', 'label' => 'Tip', 'type' => 'text', 'required' => true],
             ['name' => 'status', 'label' => 'Status', 'type' => 'text', 'required' => true],
             ['name' => 'description', 'label' => 'Opis', 'type' => 'textarea'],
+            ['name' => 'equipment', 'label' => 'Oprema uz bicikl', 'type' => 'textarea', 'hint' => 'Primjer: kaciga, lokot, svjetla, set za popravak.'],
+            ['name' => 'technical_details', 'label' => 'Tehnički detalji', 'type' => 'textarea', 'hint' => 'Upiši bitne tehničke podatke koji se trebaju vidjeti korisniku.'],
             ['name' => 'image_url', 'label' => 'Slika', 'type' => 'image', 'hint' => 'Odaberi uploadanu sliku ili ručno unesi URL.'],
             ['name' => 'last_service_at', 'label' => 'Zadnji servis', 'type' => 'date'],
         ];
