@@ -8,6 +8,7 @@ use App\Models\Issue;
 use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rule;
 
 class IssueController extends Controller
@@ -19,10 +20,11 @@ class IssueController extends Controller
         return view('admin.resources.index', [
             'title' => 'Kvarovi',
             'subtitle' => 'CRUD za servisne prijave i prioritet.',
-            'headers' => ['Naslov', 'Korisnik', 'Bicikl', 'Rezervacija', 'Status', 'Prioritet'],
+            'headers' => ['Slika', 'Naslov', 'Korisnik', 'Bicikl', 'Rezervacija', 'Status', 'Prioritet'],
             'createUrl' => route('admin.issues.create'),
             'rows' => $issues->map(fn (Issue $issue) => [
                 'cells' => [
+                    $this->imageCell($issue),
                     $issue->title,
                     $issue->user?->name ?? '-',
                     $issue->bike?->name ?? '-',
@@ -123,5 +125,20 @@ class IssueController extends Controller
             ['name' => 'image_url', 'label' => 'Slika', 'type' => 'image', 'hint' => 'Odaberi uploadanu sliku ili ručno unesi URL.'],
             ['name' => 'resolved_at', 'label' => 'Riješeno', 'type' => 'datetime-local'],
         ];
+    }
+
+    private function imageCell(Issue $issue): HtmlString|string
+    {
+        if (! $issue->image_url) {
+            return '-';
+        }
+
+        $url = e($issue->image_url);
+
+        return new HtmlString(sprintf(
+            '<a href="%s" target="_blank" rel="noopener"><img src="%s" alt="Fotografija kvara" style="width:72px;height:54px;object-fit:cover;border-radius:10px;border:1px solid rgba(148,163,184,.35);"></a>',
+            $url,
+            $url
+        ));
     }
 }

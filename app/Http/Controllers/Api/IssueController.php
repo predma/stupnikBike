@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Issue;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class IssueController extends Controller
@@ -12,7 +13,10 @@ class IssueController extends Controller
     public function index()
     {
         return response()->json([
-            'data' => Issue::with(['bike', 'user', 'reservation'])->latest()->get(),
+            'data' => Issue::with(['bike', 'user', 'reservation'])
+                ->where('user_id', request()->user()->id)
+                ->latest()
+                ->get(),
         ]);
     }
 
@@ -48,6 +52,24 @@ class IssueController extends Controller
             'channel' => 'app',
             'is_read' => false,
         ]);
+
+        User::query()
+            ->where('role', 'admin')
+            ->where('is_active', true)
+            ->get()
+            ->each(fn (User $admin) => Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'issue',
+                'title' => 'Nova prijava kvara',
+                'body' => sprintf(
+                    '%s je prijavio kvar "%s" za bicikl %s.',
+                    $request->user()->name,
+                    $issue->title,
+                    $issue->bike?->code ?? "#{$issue->bike_id}"
+                ),
+                'channel' => 'app',
+                'is_read' => false,
+            ]));
 
         return response()->json([
             'data' => $issue->load(['bike', 'user', 'reservation']),

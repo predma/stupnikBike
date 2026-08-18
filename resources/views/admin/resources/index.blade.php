@@ -23,7 +23,13 @@
                 @forelse ($rows as $row)
                     <tr>
                         @foreach ($row['cells'] as $cell)
-                            <td>{{ $cell }}</td>
+                            <td>
+                                @if ($cell instanceof \Illuminate\Contracts\Support\Htmlable)
+                                    {!! $cell->toHtml() !!}
+                                @else
+                                    {{ $cell }}
+                                @endif
+                            </td>
                         @endforeach
                         <td style="white-space: nowrap;">
                             <div style="display:flex; gap:10px; flex-wrap: wrap;">
