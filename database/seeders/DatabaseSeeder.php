@@ -67,6 +67,7 @@ class DatabaseSeeder extends Seeder
             'key' => 'app',
             'value' => [
                 'contact_email' => 'rent@stupnik.bike',
+                'terms_of_use' => "Korištenjem aplikacije Stupnik Bike korisnik potvrđuje da će bicikl koristiti odgovorno, u skladu s prometnim propisima i u dogovorenom terminu rezervacije.\n\nKorisnik je dužan vratiti bicikl u stanju u kojem ga je preuzeo te odmah prijaviti svaki kvar ili oštećenje kroz aplikaciju.\n\nOpćina Stupnik i administrator sustava mogu odbiti ili otkazati rezervaciju u slučaju zlouporabe, netočnih podataka ili nedostupnosti bicikla.",
             ],
         ]);
 

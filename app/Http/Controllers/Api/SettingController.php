@@ -15,6 +15,7 @@ class SettingController extends Controller
         return response()->json([
             'data' => [
                 'contact_email' => $settings['contact_email'] ?? null,
+                'terms_of_use' => $settings['terms_of_use'] ?? null,
             ],
         ]);
     }

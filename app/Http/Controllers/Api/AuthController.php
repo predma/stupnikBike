@@ -160,6 +160,78 @@ class AuthController extends Controller
         ]);
     }
 
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $user = User::query()
+            ->where('email', $data['email'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'Ako račun postoji, poslali smo kod za promjenu lozinke.',
+                'email' => $data['email'],
+                'expires_in' => self::EMAIL_CODE_TTL_MINUTES * 60,
+            ]);
+        }
+
+        $retryAfter = $this->sendPasswordResetCode($user);
+        if ($retryAfter !== null) {
+            return response()->json([
+                'message' => 'Pričekaj prije ponovnog slanja koda.',
+                'retry_after' => $retryAfter,
+            ], 429);
+        }
+
+        return response()->json([
+            'message' => 'Poslali smo kod za promjenu lozinke.',
+            'email' => $user->email,
+            'expires_in' => self::EMAIL_CODE_TTL_MINUTES * 60,
+            ...$this->localDebugCode(),
+        ]);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'code' => ['required', 'digits:6'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $user = User::query()
+            ->where('email', $data['email'])
+            ->where('is_active', true)
+            ->first();
+
+        if (
+            ! $user ||
+            ! $user->email_verification_code_hash ||
+            ! $user->email_verification_expires_at ||
+            $user->email_verification_expires_at->isPast() ||
+            ! Hash::check($data['code'], $user->email_verification_code_hash)
+        ) {
+            return response()->json(['message' => 'Neispravan ili istekao kod za promjenu lozinke.'], 422);
+        }
+
+        $user->forceFill([
+            'password' => $data['password'],
+            'email_verified_at' => $user->email_verified_at ?? now(),
+            'email_verification_code_hash' => null,
+            'email_verification_expires_at' => null,
+            'email_verification_sent_at' => null,
+            'api_token' => null,
+        ])->save();
+
+        return response()->json([
+            'message' => 'Lozinka je promijenjena. Prijavi se s novom lozinkom.',
+        ]);
+    }
+
     public function me(Request $request): JsonResponse
     {
         return response()->json([
@@ -258,6 +330,56 @@ class AuthController extends Controller
         } catch (\Throwable $exception) {
             $this->lastMailError = $exception->getMessage();
             Log::warning('StupnikBike email verification delivery failed.', [
+                'email' => $user->email,
+                'error' => $exception->getMessage(),
+            ]);
+
+            if (! app()->environment('local')) {
+                throw $exception;
+            }
+        }
+
+        return null;
+    }
+
+    private function sendPasswordResetCode(User $user): ?int
+    {
+        if (
+            $user->email_verification_sent_at &&
+            $user->email_verification_sent_at->gt(now()->subSeconds(self::RESEND_WAIT_SECONDS))
+        ) {
+            return max(1, self::RESEND_WAIT_SECONDS - $user->email_verification_sent_at->diffInSeconds(now()));
+        }
+
+        $code = (string) random_int(100000, 999999);
+        $this->lastVerificationCode = $code;
+
+        $user->forceFill([
+            'email_verification_code_hash' => Hash::make($code),
+            'email_verification_expires_at' => now()->addMinutes(self::EMAIL_CODE_TTL_MINUTES),
+            'email_verification_sent_at' => now(),
+        ])->save();
+
+        if (app()->environment('local')) {
+            Log::info('StupnikBike password reset code generated.', [
+                'email' => $user->email,
+                'code' => $code,
+                'expires_at' => $user->email_verification_expires_at?->toIso8601String(),
+            ]);
+        }
+
+        try {
+            Mail::raw(
+                "Pozdrav {$user->name},\n\nVaš StupnikBike kod za promjenu lozinke je: {$code}\n\nKod vrijedi " . self::EMAIL_CODE_TTL_MINUTES . " minuta.\n\nAko niste zatražili promjenu lozinke, zanemarite ovu poruku.",
+                function ($message) use ($user): void {
+                    $message
+                        ->to($user->email, $user->name)
+                        ->subject('StupnikBike kod za promjenu lozinke');
+                }
+            );
+        } catch (\Throwable $exception) {
+            $this->lastMailError = $exception->getMessage();
+            Log::warning('StupnikBike password reset delivery failed.', [
                 'email' => $user->email,
                 'error' => $exception->getMessage(),
             ]);

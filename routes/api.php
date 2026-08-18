@@ -15,6 +15,8 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail']);
     Route::post('/auth/resend-email-code', [AuthController::class, 'resendEmailVerification']);
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/settings', SettingController::class);
 
     Route::middleware('api.token')->group(function (): void {
