@@ -20,7 +20,7 @@ class IssueController extends Controller
         return view('admin.resources.index', [
             'title' => 'Kvarovi',
             'subtitle' => 'CRUD za servisne prijave i prioritet.',
-            'headers' => ['Slika', 'Naslov', 'Korisnik', 'Bicikl', 'Rezervacija', 'Status', 'Prioritet'],
+            'headers' => ['Slika', 'Naslov', 'Korisnik', 'Bicikl', 'Rezervacija', 'Datum prijave', 'Status', 'Prioritet'],
             'createUrl' => route('admin.issues.create'),
             'rows' => $issues->map(fn (Issue $issue) => [
                 'cells' => [
@@ -29,6 +29,7 @@ class IssueController extends Controller
                     $issue->user?->name ?? '-',
                     $issue->bike?->name ?? '-',
                     $issue->reservation?->reservation_number ?? '-',
+                    $issue->created_at?->format('d.m.Y. H:i') ?? '-',
                     $issue->status,
                     $issue->priority,
                 ],
