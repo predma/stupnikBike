@@ -33,10 +33,41 @@ class SettingController extends Controller
                     'required' => true,
                     'hint' => 'Prikazuje se u mobilnoj aplikaciji kada korisnik klikne Uvjete korištenja.',
                 ],
+                [
+                    'name' => 'pickup_location_name',
+                    'label' => 'Naziv lokacije preuzimanja',
+                    'type' => 'text',
+                    'required' => true,
+                    'hint' => 'Prikazuje se na naslovnici iznad bicikala.',
+                ],
+                [
+                    'name' => 'pickup_location_address',
+                    'label' => 'Adresa/opis lokacije',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                [
+                    'name' => 'pickup_location_latitude',
+                    'label' => 'Latitude',
+                    'type' => 'number',
+                    'required' => true,
+                    'step' => '0.000000000000001',
+                ],
+                [
+                    'name' => 'pickup_location_longitude',
+                    'label' => 'Longitude',
+                    'type' => 'number',
+                    'required' => true,
+                    'step' => '0.000000000000001',
+                ],
             ],
             'values' => [
                 'contact_email' => $settings['contact_email'] ?? 'rent@stupnik.bike',
                 'terms_of_use' => $settings['terms_of_use'] ?? $this->defaultTermsOfUse(),
+                'pickup_location_name' => $settings['pickup_location_name'] ?? 'Lokacija preuzimanja',
+                'pickup_location_address' => $settings['pickup_location_address'] ?? 'Stupnik Bike',
+                'pickup_location_latitude' => $settings['pickup_location_latitude'] ?? '45.167915695679504',
+                'pickup_location_longitude' => $settings['pickup_location_longitude'] ?? '17.800039051188474',
             ],
         ]);
     }
@@ -46,11 +77,19 @@ class SettingController extends Controller
         $data = $request->validate([
             'contact_email' => ['required', 'email:rfc', 'max:255'],
             'terms_of_use' => ['required', 'string'],
+            'pickup_location_name' => ['required', 'string', 'max:255'],
+            'pickup_location_address' => ['required', 'string', 'max:255'],
+            'pickup_location_latitude' => ['required', 'numeric', 'between:-90,90'],
+            'pickup_location_longitude' => ['required', 'numeric', 'between:-180,180'],
         ]);
 
         $settings = Setting::value('app', []);
         $settings['contact_email'] = $data['contact_email'];
         $settings['terms_of_use'] = $data['terms_of_use'];
+        $settings['pickup_location_name'] = $data['pickup_location_name'];
+        $settings['pickup_location_address'] = $data['pickup_location_address'];
+        $settings['pickup_location_latitude'] = (float) $data['pickup_location_latitude'];
+        $settings['pickup_location_longitude'] = (float) $data['pickup_location_longitude'];
 
         Setting::query()->updateOrCreate(
             ['key' => 'app'],
